@@ -58,16 +58,16 @@ parser.add_argument('--exp', type=str, default='', help='path to exp folder')
 parser.add_argument('--verbose', action='store_true', help='chatty')
 parser.add_argument('--scale', type=float, default=30, help='the scale for l2-softmax')
 parser.add_argument('--normalize', action='store_true', help='l2-softmax or not')
-
+parser.add_argument('--cluster_file', type=str, help='path to the cluster binary')
 
 def get_groundtruth_list(dataloader):
     I_list = [[] for x in range(1000)]
     i = 0
-    #for i, (input_tensor, target) in enumerate(dataloader):
-    for (input_tensor, target) in dataloader:
-        print(i, target)
-        i += 1
-        #I_list[target].append(i)
+    for i, (input_tensor, target) in enumerate(dataloader):
+    	#for (input_tensor, target) in dataloader:
+        #print(i, target)
+        #i += 1
+        I_list[target].append(i)
         
     return I_list
 
@@ -106,8 +106,11 @@ def compute_features(dataloader, model, N):
 
 global args
 args = parser.parse_args()
-pickle_in = open('exp_l2_K1000/clusters','rb')
+print('----**----')
+print(args.cluster_file)
+pickle_in = open(args.cluster_file,'rb')
 log_data = pickle.load(pickle_in)
+
 print('*******************')
 
 #print(len(data))

@@ -12,10 +12,11 @@ LR=0.05
 WD=-5
 K=1000
 WORKERS=12
-EXP="/home/biometrics/deepcluster/exp_uz_l2_K1000_debug"
+EXP="/home/biometrics/deepcluster/exp_uz_l2_K100000_debug"
+CLUSTER_FILE='/home/biometrics/deepcluster/exp_l2_K100000/clusters'
 # PYTHON="/private/home/${USER}/test/conda/bin/python"
 
 mkdir -p ${EXP}
 
-CUDA_VISIBLE_DEVICES='5' python pickel_reader.py ${DIR} --normalize --exp ${EXP} --arch ${ARCH} \
-  --lr ${LR} --wd ${WD} --k ${K} --sobel --verbose --workers ${WORKERS} 2>&1 | tee ${EXP}/log.txt
+CUDA_VISIBLE_DEVICES='4' python pickel_reader.py ${DIR} --normalize --exp ${EXP} --arch ${ARCH} \
+  --lr ${LR} --wd ${WD} --k ${K} --sobel --verbose --workers ${WORKERS} --cluster_file ${CLUSTER_FILE} 2>&1 | tee ${EXP}/log.txt
