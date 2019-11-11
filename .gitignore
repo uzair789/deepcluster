@@ -7,4 +7,5 @@ third-parties/
 third-parties/*
 results/
 Data/
+plots/
 tmp/
