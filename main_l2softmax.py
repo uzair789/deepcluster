@@ -60,6 +60,8 @@ parser.add_argument('--checkpoints', type=int, default=25000,
 parser.add_argument('--seed', type=int, default=31, help='random seed (default: 31)')
 parser.add_argument('--exp', type=str, default='', help='path to exp folder')
 parser.add_argument('--verbose', action='store_true', help='chatty')
+parser.add_argument('--scale', type=float, default=30, help='the scale for l2-softmax')
+parser.add_argument('--normalize', action='store_true', help='l2-softmax or not')
 
 
 def main():
@@ -135,8 +137,15 @@ def main():
                                              pin_memory=True)
 
     # clustering algorithm to use
-    deepcluster = clustering.__dict__[args.clustering](args.nmb_cluster)
 
+    #print("------------->>><<______")
+    #print(clustering.__dict__)
+    #print('-------_******_---------')
+    #print(args.clustering)
+    #print('---------')
+    #print(clustering.__dict__[args.clustering])
+    deepcluster = clustering.__dict__[args.clustering](args.nmb_cluster)
+    #print(deepcluster)
     # training convnet with DeepCluster
     for epoch in range(args.start_epoch, args.epochs):
         end = time.time()
@@ -171,9 +180,14 @@ def main():
         mlp = list(model.classifier.children())
         mlp.append(nn.ReLU(inplace=True).cuda())
         model.classifier = nn.Sequential(*mlp)
-        model.top_layer = nn.Linear(fd, len(deepcluster.images_lists))
-        model.top_layer.weight.data.normal_(0, 0.01)
-        model.top_layer.bias.data.zero_()
+        if args.normalize:
+            model.top_layer = models.distLinear(fd, len(deepcluster.images_lists))
+            model.top_layer.L.weight.data.normal_(0, 0.01)
+
+        else:
+            model.top_layer = nn.Linear(fd, len(deepcluster.images_lists))
+            model.top_layer.weight.data.normal_(0, 0.01)
+            model.top_layer.bias.data.zero_()
         model.top_layer.cuda()
 
         # train network with clusters as pseudo-labels
@@ -181,7 +195,8 @@ def main():
         loss = train(train_dataloader, model, criterion, optimizer, epoch)
 
         # print log
-        if args.verbose:
+        a = True
+        if a:#rgs.verbose:
             print('###### Epoch [{0}] ###### \n'
                   'Time: {1:.3f} s\n'
                   'Clustering loss: {2:.3f} \n'
@@ -192,6 +207,9 @@ def main():
                     clustering.arrange_clustering(deepcluster.images_lists),
                     clustering.arrange_clustering(cluster_log.data[-1])
                 )
+
+                print('---CLUSTER DATA [-1]----')
+                print(deepcluster.images_lists)
                 print('NMI against previous assignment: {0:.3f}'.format(nmi))
             except IndexError:
                 pass
@@ -254,7 +272,8 @@ def train(loader, model, crit, opt, epoch):
                 'optimizer' : opt.state_dict()
             }, path)
 
-        target = target.cuda(async=True)
+        #target = target.cuda(async=True)
+        target = target.cuda()
         input_var = torch.autograd.Variable(input_tensor.cuda())
         target_var = torch.autograd.Variable(target)
 
@@ -293,7 +312,7 @@ def compute_features(dataloader, model, N):
     model.eval()
     # discard the label information in the dataloader
     for i, (input_tensor, _) in enumerate(dataloader):
-        input_var = input_tensor.cuda()
+        input_var = torch.autograd.Variable(input_tensor.cuda())
         aux = model(input_var).data.cpu().numpy()
 
         if i == 0:

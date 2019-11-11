@@ -46,6 +46,40 @@ def load_model(path):
     return model
 
 
+def load_l2_model(path):
+    """Loads model and return it without DataParallel table."""
+    if os.path.isfile(path):
+        print("=> loading checkpoint '{}'".format(path))
+        checkpoint = torch.load(path)
+
+        # size of the top layer
+        N = checkpoint['state_dict']['top_layer.L.weight'].size()
+
+        # build skeleton of the model
+        sob = 'sobel.0.weight' in checkpoint['state_dict'].keys()
+        model = models.__dict__[checkpoint['arch']](sobel=sob, out=int(N[0]))
+        # model.top_layer = None
+        model.top_layer = models.distLinear(N[1], N[0])
+
+        # deal with a dataparallel table
+        def rename_key(key):
+            if not 'module' in key:
+                return key
+            return ''.join(key.split('.module'))
+
+        checkpoint['state_dict'] = {rename_key(key): val
+                                    for key, val
+                                    in checkpoint['state_dict'].items()}
+
+        # load weights
+        model.load_state_dict(checkpoint['state_dict'])
+        print("Loaded")
+    else:
+        model = None
+        print("=> no checkpoint found at '{}'".format(path))
+    return model
+
+
 class UnifLabelSampler(Sampler):
     """Samples elements uniformely accross pseudolabels.
         Args:
@@ -59,37 +93,25 @@ class UnifLabelSampler(Sampler):
         self.indexes = self.generate_indexes_epoch()
 
     def generate_indexes_epoch(self):
-        nmb_non_empty_clusters = 0
-        for i in range(len(self.images_lists)):
-            if len(self.images_lists[i]) != 0:
-                nmb_non_empty_clusters += 1
-
-        size_per_pseudolabel = int(self.N / nmb_non_empty_clusters) + 1
-        res = np.array([])
+        size_per_pseudolabel = int(self.N / len(self.images_lists)) + 1
+        res = np.zeros(size_per_pseudolabel * len(self.images_lists))
 
         for i in range(len(self.images_lists)):
-            # skip empty clusters
-            if len(self.images_lists[i]) == 0:
-                continue
             indexes = np.random.choice(
                 self.images_lists[i],
                 size_per_pseudolabel,
                 replace=(len(self.images_lists[i]) <= size_per_pseudolabel)
             )
-            res = np.concatenate((res, indexes))
+            res[i * size_per_pseudolabel: (i + 1) * size_per_pseudolabel] = indexes
 
         np.random.shuffle(res)
-        res = list(res.astype('int'))
-        if len(res) >= self.N:
-            return res[:self.N]
-        res += res[: (self.N - len(res))]
-        return res
+        return res[:self.N].astype('int')
 
     def __iter__(self):
         return iter(self.indexes)
 
     def __len__(self):
-        return len(self.indexes)
+        return self.N
 
 
 class AverageMeter(object):
@@ -116,7 +138,7 @@ def learning_rate_decay(optimizer, t, lr_0):
         param_group['lr'] = lr
 
 
-class Logger(object):
+class Logger():
     """ Class to update every epoch to keep trace of the results
     Methods:
         - log() log and save

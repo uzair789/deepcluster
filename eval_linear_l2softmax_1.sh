@@ -7,13 +7,13 @@
 #!/bin/bash
 
 DATA="/media/Diana/Data/imagenet2012/"
-MODELROOT="/media/Diana/rantao/deepcluster/exp"
+MODELROOT="/media/Diana/rantao/deepcluster/exp_l2"
 MODEL="${MODELROOT}/checkpoint.pth.tar"
-EXP="/media/Diana/rantao/deepcluster/exp/linear_classif"
+EXP="/media/Diana/rantao/deepcluster/exp_l2/linear_classif"
 
 
 mkdir -p ${EXP}
 
-CUDA_VISIBLE_DEVICES="0" python eval_linear.py --model ${MODEL} --data ${DATA} --conv 5 --lr 0.01 \
-  --wd -7 --verbose --exp ${EXP} --workers 12 2>&1 | tee ${EXP}/log_conv5.txt
+CUDA_VISIBLE_DEVICES="5" python eval_linear.py --model ${MODEL} --data ${DATA} --conv 5 --lr 0.01 \
+  --wd -7 --verbose --exp ${EXP} --workers 12 --l2 2>&1 | tee ${EXP}/log_conv5_l2.txt
 

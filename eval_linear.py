@@ -17,8 +17,9 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import models
 
-from util import AverageMeter, learning_rate_decay, load_model, Logger
+from util import AverageMeter, learning_rate_decay, load_model, Logger, load_l2_model
 
 parser = argparse.ArgumentParser(description="""Train linear classifier on top
                                  of frozen convolutional layers of an AlexNet.""")
@@ -41,6 +42,7 @@ parser.add_argument('--weight_decay', '--wd', default=-4, type=float,
                     help='weight decay pow (default: -4)')
 parser.add_argument('--seed', type=int, default=31, help='random seed')
 parser.add_argument('--verbose', action='store_true', help='chatty')
+parser.add_argument('--l2', action='store_true', help='evaluation on l2-softmax')
 
 
 def main():
@@ -55,7 +57,10 @@ def main():
     best_prec1 = 0
 
     # load model
-    model = load_model(args.model)
+    if args.l2:
+        model = load_l2_model(args.model)
+    else:
+        model = load_model(args.model)
     model.cuda()
     cudnn.benchmark = True
 
@@ -111,7 +116,7 @@ def main():
                                              num_workers=args.workers)
 
     # logistic regression
-    reglog = RegLog(args.conv, len(train_dataset.classes)).cuda()
+    reglog = RegLog(args.conv, len(train_dataset.classes), args.l2).cuda()
     optimizer = torch.optim.SGD(
         filter(lambda x: x.requires_grad, reglog.parameters()),
         args.lr,
@@ -160,7 +165,7 @@ def main():
 
 class RegLog(nn.Module):
     """Creates logistic regression on top of frozen features"""
-    def __init__(self, conv, num_labels):
+    def __init__(self, conv, num_labels, l2):
         super(RegLog, self).__init__()
         self.conv = conv
         if conv==1:
@@ -178,7 +183,11 @@ class RegLog(nn.Module):
         elif conv==5:
             self.av_pool = nn.AvgPool2d(2, stride=2, padding=0)
             s = 9216
-        self.linear = nn.Linear(s, num_labels)
+        if l2:
+            self.linear = models.distLinear(s, num_labels)
+        else:
+            # self.linear = nn.Linear(s, num_labels)
+            self.linear = models.distLinear(s, num_labels)
 
     def forward(self, x):
         x = self.av_pool(x)
@@ -243,7 +252,7 @@ def train(train_loader, model, reglog, criterion, optimizer, epoch):
         loss = criterion(output, target_var)
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
-        losses.update(loss.data[0], input.size(0))
+        losses.update(loss.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
         top5.update(prec5[0], input.size(0))
 
@@ -298,7 +307,7 @@ def validate(val_loader, model, reglog, criterion):
         top1.update(prec1[0], input_tensor.size(0))
         top5.update(prec5[0], input_tensor.size(0))
         loss = criterion(output_central, target_var)
-        losses.update(loss.data[0], input_tensor.size(0))
+        losses.update(loss.item(), input_tensor.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)

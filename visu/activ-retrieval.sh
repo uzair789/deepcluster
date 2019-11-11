@@ -6,8 +6,8 @@
 #
 #!/bin/bash
 
-MODEL="$HOME/deepcluster_models/vgg16/checkpoint.pth.tar"
-EXP="$HOME/temp/"
+MODEL='/private/home/mathilde/model-to-release/vgg16/checkpoint.pth.tar'
+EXP='/private/home/mathilde/temp'
 CONV=5
 DATA='/datasets01/imagenet_full_size/061417/val'
 

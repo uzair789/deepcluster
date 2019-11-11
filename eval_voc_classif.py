@@ -27,15 +27,15 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from util import AverageMeter, load_model
+from util import AverageMeter, load_model, load_l2_model
 from eval_linear import accuracy
+import models
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--vocdir', type=str, required=False, default='', help='pascal voc 2007 dataset')
 parser.add_argument('--split', type=str, required=False, default='train', choices=['train', 'trainval'], help='training split')
-parser.add_argument('--model', type=str, required=False, default='',
-                    help='evaluate this model')
+parser.add_argument('--model', type=str, required=False, default='', help='evaluate this model')
 parser.add_argument('--nit', type=int, default=80000, help='Number of training iterations')
 parser.add_argument('--fc6_8', type=int, default=1, help='If true, train only the final classifier')
 parser.add_argument('--train_batchnorm', type=int, default=0, help='If true, train batch-norm layer parameters')
@@ -46,6 +46,7 @@ parser.add_argument('--wd', type=float, required=False, default=1e-6, help='weig
 parser.add_argument('--min_scale', type=float, required=False, default=0.1, help='scale')
 parser.add_argument('--max_scale', type=float, required=False, default=0.5, help='scale')
 parser.add_argument('--seed', type=int, default=31, help='random seed')
+parser.add_argument('--l2', action='store_true')
 
 def main():
     args = parser.parse_args()    
@@ -57,8 +58,14 @@ def main():
     np.random.seed(args.seed)
 
     # create model and move it to gpu
-    model = load_model(args.model)
-    model.top_layer = nn.Linear(model.top_layer.weight.size(1), 20)
+    if args.l2:
+        model = load_l2_model(args.model)
+        model.top_layer = nn.Linear(model.top_layer.L.weight.size(1), 20)
+        # model.top_layer = models.distLinear(model.top_layer.L.weight.size(1), 20)
+    else:
+        model = load_model(args.model)
+        # model.top_layer = nn.Linear(model.top_layer.weight.size(1), 20)
+        model.top_layer = models.distLinear(model.top_layer.weight.size(1), 20)
     model.cuda()
     cudnn.benchmark = True
 
@@ -70,7 +77,7 @@ def main():
     # data loader
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
-    dataset = VOC2007_dataset(args.vocdir, split=args.split, transform=transforms.Compose([
+    dataset = VOC2007_dataset(os.path.join(args.vocdir, 'trainval'), split=args.split, transform=transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomResizedCrop(224, scale=(args.min_scale, args.max_scale), ratio=(1, 1)),
             transforms.ToTensor(),
@@ -87,7 +94,8 @@ def main():
         if isinstance(m, nn.Linear):
             m.weight.data.normal_(0, 0.01)
             m.bias.data.fill_(0.1)
-    model.top_layer.bias.data.fill_(0.1)
+    # if not args.l2:
+    #     model.top_layer.bias.data.fill_(0.1)
 
     if args.fc6_8:
        # freeze some layers 
@@ -142,7 +150,7 @@ def main():
         ] 
 
     print('Train set')
-    train_dataset = VOC2007_dataset(args.vocdir, split=args.split, transform=transforms.Compose(transform_eval))
+    train_dataset = VOC2007_dataset(os.path.join(args.vocdir, 'trainval'), split=args.split, transform=transforms.Compose(transform_eval))
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=1,
@@ -153,7 +161,7 @@ def main():
     evaluate(train_loader, model, args.eval_random_crops)
 
     print('Test set')
-    test_dataset = VOC2007_dataset(args.vocdir, split=args.test, transform=transforms.Compose(transform_eval))
+    test_dataset = VOC2007_dataset(os.path.join(args.vocdir, 'test'), split=args.test, transform=transforms.Compose(transform_eval))
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=1,

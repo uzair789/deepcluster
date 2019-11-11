@@ -23,7 +23,8 @@ Finally, this code also includes a visualisation module that allows to assess vi
 - a PyTorch install version 0.1.8 ([pytorch.org](http://pytorch.org))
 - CUDA 8.0
 - a Faiss install ([Faiss](https://github.com/facebookresearch/faiss))
-- The ImageNet dataset (which can be automatically downloaded by recent version of [torchvision](https://pytorch.org/docs/stable/torchvision/datasets.html#imagenet))
+- Download the ImageNet dataset
+
 
 ## Pre-trained models
 We provide pre-trained models with AlexNet and VGG-16 architectures, available for download.
@@ -210,7 +211,7 @@ You can run the instance-level image retrieval transfer task using:
 ./eval_retrieval.sh
 ```
 
-## Visualisation
+## Visualisaton
 
 We provide two standard visualisation methods presented in our paper.
 

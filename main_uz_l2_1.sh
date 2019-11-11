@@ -6,16 +6,16 @@
 #
 #!/bin/bash
 
-DIR="/media/Diana/Data/imagenet2012/train"
-ARCH="vgg16"
+DIR="/home/biometrics/deepcluster/Data/imagenet2012/train"
+ARCH="alexnet"
 LR=0.05
 WD=-5
-K=10000
+K=1000
 WORKERS=12
-EXP="/media/Diana/rantao/deepcluster/exp_vgg16"
+EXP="/home/biometrics/deepcluster/exp_uz_l2_K1000_debug"
 # PYTHON="/private/home/${USER}/test/conda/bin/python"
 
 mkdir -p ${EXP}
 
-CUDA_VISIBLE_DEVICES="6,7" python main.py ${DIR} --exp ${EXP} --arch ${ARCH} \
+CUDA_VISIBLE_DEVICES='5' python main_l2softmax.py ${DIR} --normalize --exp ${EXP} --arch ${ARCH} \
   --lr ${LR} --wd ${WD} --k ${K} --sobel --verbose --workers ${WORKERS} 2>&1 | tee ${EXP}/log.txt
