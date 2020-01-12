@@ -62,66 +62,23 @@ parser.add_argument('--cluster_file', type=str, help='path to the cluster binary
 
 def get_groundtruth_list(dataloader):
     I_list = [[] for x in range(1000)]
-    i = 0
     for i, (input_tensor, target) in enumerate(dataloader):
-    	#for (input_tensor, target) in dataloader:
-        #print(i, target)
-        #i += 1
         I_list[target].append(i)
-        
     return I_list
 
-
-
-def compute_features(dataloader, model, N):
-    if args.verbose:
-        print('Compute features')
-    batch_time = AverageMeter()
-    end = time.time()
-    model.eval()
-    # discard the label information in the dataloader
-    for i, (input_tensor, _) in enumerate(dataloader):
-        input_var = torch.autograd.Variable(input_tensor.cuda())
-        aux = model(input_var).data.cpu().numpy()
-
-        if i == 0:
-            features = np.zeros((N, aux.shape[1])).astype('float32')
-
-        if i < len(dataloader) - 1:
-            features[i * args.batch: (i + 1) * args.batch] = aux.astype('float32')
-        else:
-            # special treatment for final batch
-            features[i * args.batch:] = aux.astype('float32')
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        if args.verbose and (i % 200) == 0:
-            print('{0} / {1}\t'
-                  'Time: {batch_time.val:.3f} ({batch_time.avg:.3f})'
-                  .format(i, len(dataloader), batch_time=batch_time))
-    return features
-
-
 global args
-args = parser.parse_args()
-print('----**----')
-print(args.cluster_file)
-pickle_in = open(args.cluster_file,'rb')
-log_data = pickle.load(pickle_in)
 
-print('*******************')
 
-#print(len(data))
+# load the data
+end = time.time()
+
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 tra = [transforms.Resize(256),
        transforms.CenterCrop(224),
        transforms.ToTensor(),
        normalize]
-# load the data
-end = time.time()
+
 data_dir = '/home/biometrics/deepcluster/Data/imagenet2012/train'
 dataset = datasets.ImageFolder(data_dir, transform=transforms.Compose(tra))
 #if args.verbose: print('Load dataset: {0:.2f} s'.format(time.time() - end))
@@ -139,40 +96,34 @@ groundtruth_imagelist = get_groundtruth_list(dataloader)
 print('Groundtruth Loaded!!!')
 print("TIme to load GT : " +str(round(time.time()-start,4)) + " seconds \n" )
 
-#print(groundtruth_imagelist)
 
-"""
-model = models.__dict__[args.arch](sobel=args.sobel)
-fd = int(model.top_layer.weight.size()[1])
-model.top_layer = None
-model.features = torch.nn.DataParallel(model.features)
-model.cuda()
-cudnn.benchmark = True
-
-
-deepcluster = clustering.__dict__[args.clustering](args.nmb_cluster)
-
-
-model.top_layer = None
-model.classifier = nn.Sequential(*list(model.classifier.children())[:-1])
-
-# get the features for the whole dataset
-
-features = compute_features(dataloader, model, len(dataset))
-clustering_loss = deepcluster.cluster(features, verbose=args.verbose)
-"""
-
+args = parser.parse_args()
+print('----**----')
+print(args.cluster_file)
+pickle_in = open(args.cluster_file,'rb')
+log_data = pickle.load(pickle_in)
 for i, data_epoch in enumerate(log_data):
     nmi = normalized_mutual_info_score(
                     clustering.arrange_clustering(groundtruth_imagelist),
                     clustering.arrange_clustering(data_epoch))
     print('The NMI is epoch ',i, ' NMI = ', nmi )
 
+"""
 
-        
+multiple_cluster_paths = ['results/exp_l2_K5950/clusters', 'results/exp_l2_K59500/clusters']
+for i,cluster_path in enumerate(multiple_cluster_paths):
+    pickle_in = open(cluster_path, 'rb')
+    log_data = pickle.load(pickle_in)
+    print('Loaded ', cluster_path)
+
+    f = open('log'+str(i)+'.txt','w')
+    f.write(cluster_path+'\n')	
+    for i, data_epoch in enumerate(log_data):
+        nmi = normalized_mutual_info_score(
+                        clustering.arrange_clustering(groundtruth_imagelist),
+                        clustering.arrange_clustering(data_epoch))
+        line = 'The NMI is epoch '+ str(i) + ' NMI = '+ str(nmi)+'\n'
+        f.write(line)
 
 
-
-
-
-
+"""

@@ -7,3 +7,4 @@
 from .vgg16 import *
 from .alexnet import *
 from .disLinear import *
+from .resnet50 import *

@@ -3,7 +3,11 @@ import os
 
 
 
-folders = ['results/exp_uz_l2_K1000_debug', 'results/exp_uz_l2_K10000_debug']
+folders = ['results/exp_uz_l2_K1000_debug',
+		'results/exp_uz_l2_K10000_debug',
+		'results/exp_uz_l2_K100000_debug',
+		'results/exp_uz_l2_K5950_debug',
+		'results/exp_uz_l2_K59500_debug']
 
 
 def get_nmi_values(log_file_path):

@@ -21,6 +21,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from torchsummary import summary
 import clustering
 import models
 from util import AverageMeter, Logger, UnifLabelSampler
@@ -30,7 +31,7 @@ parser = argparse.ArgumentParser(description='PyTorch Implementation of DeepClus
 
 parser.add_argument('data', metavar='DIR', help='path to dataset')
 parser.add_argument('--arch', '-a', type=str, metavar='ARCH',
-                    choices=['alexnet', 'vgg16'], default='alexnet',
+                    choices=['alexnet', 'vgg16', 'resnet50'], default='alexnet',
                     help='CNN architecture (default: alexnet)')
 parser.add_argument('--sobel', action='store_true', help='Sobel filtering')
 parser.add_argument('--clustering', type=str, choices=['Kmeans', 'PIC'],
@@ -74,11 +75,19 @@ def main():
     # CNN
     if args.verbose:
         print('Architecture: {}'.format(args.arch))
+   
+    print(models.__dict__, '---->>')
+ 
     model = models.__dict__[args.arch](sobel=args.sobel)
+
+    print(model)
     fd = int(model.top_layer.weight.size()[1])
     model.top_layer = None
     model.features = torch.nn.DataParallel(model.features)
     model.cuda()
+
+    summary(model, (3,224,224 ), 256)
+
     cudnn.benchmark = True
 
     # create optimizer
@@ -143,7 +152,7 @@ def main():
 
         # remove head
         model.top_layer = None
-        model.classifier = nn.Sequential(*list(model.classifier.children())[:-1])
+        #model.classifier = nn.Sequential(*list(model.classifier.children())[:-1])
 
         # get the features for the whole dataset
         features = compute_features(dataloader, model, len(dataset))
@@ -168,9 +177,9 @@ def main():
         )
 
         # set last fully connected layer
-        mlp = list(model.classifier.children())
-        mlp.append(nn.ReLU(inplace=True).cuda())
-        model.classifier = nn.Sequential(*mlp)
+        #mlp = list(model.classifier.children())
+        #mlp.append(nn.ReLU(inplace=True).cuda())
+        #model.classifier = nn.Sequential(*mlp)
         model.top_layer = nn.Linear(fd, len(deepcluster.images_lists))
         model.top_layer.weight.data.normal_(0, 0.01)
         model.top_layer.bias.data.zero_()
@@ -254,7 +263,8 @@ def train(loader, model, crit, opt, epoch):
                 'optimizer' : opt.state_dict()
             }, path)
 
-        target = target.cuda(async=True)
+        #target = target.cuda(async=True)
+        target = target.cuda()
         input_var = torch.autograd.Variable(input_tensor.cuda())
         target_var = torch.autograd.Variable(target)
 
@@ -295,6 +305,18 @@ def compute_features(dataloader, model, N):
     for i, (input_tensor, _) in enumerate(dataloader):
         input_var = input_tensor.cuda()
         aux = model(input_var).data.cpu().numpy()
+        
+
+        ## uzair
+
+        #print('before squeeze', aux.shape)
+        aux = np.squeeze(aux)
+        #print('after squeeze', aux.shape)
+        aux = np.array(aux, ndmin=2)
+        #print('after sending numpy ndmin 2', aux.shape)
+        ##
+
+
 
         if i == 0:
             features = np.zeros((N, aux.shape[1])).astype('float32')
