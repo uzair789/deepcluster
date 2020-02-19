@@ -175,6 +175,8 @@ class ResNet(nn.Module):
         self.top_layer = nn.Linear(512 * block.expansion, num_classes)
 
         if sobel:
+
+            print('---->><<< in features', sobel)
             self.features = nn.Sequential(
                          self.sobel,
                          self.conv1, 
@@ -320,6 +322,7 @@ def resnet50(sobel, pretrained=False, progress=True, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
+    print('-----..>>>>>> sobel flag', sobel)
     return _resnet(sobel, 'resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
                    **kwargs)
 

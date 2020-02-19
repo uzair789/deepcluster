@@ -19,14 +19,14 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import models
 
-from util import AverageMeter, learning_rate_decay, load_model, Logger, load_l2_model
+from util import AverageMeter, learning_rate_decay, load_model_resnet, Logger, load_l2_model
 
 parser = argparse.ArgumentParser(description="""Train linear classifier on top
                                  of frozen convolutional layers of an AlexNet.""")
 
 parser.add_argument('--data', type=str, help='path to dataset')
 parser.add_argument('--model', type=str, help='path to model')
-parser.add_argument('--conv', type=int, choices=[1, 2, 3, 4, 5],
+parser.add_argument('--conv', type=int, choices=[1, 2, 3, 4, 5, 100],
                     help='on top of which convolutional layer train logistic regression')
 parser.add_argument('--tencrops', action='store_true',
                     help='validation accuracy averaged over 10 crops')
@@ -60,7 +60,7 @@ def main():
     if args.l2:
         model = load_l2_model(args.model)
     else:
-        model = load_model(args.model)
+        model = load_model_resnet(args.model)
     model.cuda()
     cudnn.benchmark = True
 
@@ -116,6 +116,7 @@ def main():
                                              num_workers=args.workers)
 
     # logistic regression
+    #c = nn.Linear(4*512, 1000).cuda()
     reglog = RegLog(args.conv, len(train_dataset.classes), args.l2).cuda()
     optimizer = torch.optim.SGD(
         filter(lambda x: x.requires_grad, reglog.parameters()),
@@ -186,37 +187,48 @@ class RegLog(nn.Module):
         if l2:
             self.linear = models.distLinear(s, num_labels)
         else:
-            self.linear = nn.Linear(s, num_labels)
+            self.linear = nn.Linear(4*512, num_labels)
             #self.linear = models.distLinear(s, num_labels)
 
     def forward(self, x):
-        x = self.av_pool(x)
+        #x = self.av_pool(x)
         x = x.view(x.size(0), x.size(1) * x.size(2) * x.size(3))
         return self.linear(x)
 
 
 def forward(x, model, conv):
-    if hasattr(model, 'sobel') and model.sobel is not None:
-        x = model.sobel(x)
+    #if hasattr(model, 'sobel') and model.sobel is not None:
+    #    x = model.sobel(x)
     count = 1
 
+    
+
+    x = model.features(x)
+    x = model.avgpool(x)  
+    return x
+    '''
+
+ 
     for m in model.features.modules():
-        print('model features -->', m)
+        print('feat-->', m)
 
     print('####---####')
+ 
 
     for m in model.features.modules():
+        #print('--', m)
         if not isinstance(m, nn.Sequential):
-            print('--', m)
+            print('-layer desc-',m)
             x = m(x)
-        if isinstance(m, nn.ReLU):
-            if count == conv:
-                print('returned x', x)
+        #if isinstance(m, nn.ReLU):
+        if isinstance(m, nn.AdaptiveAvgPool2d):
+                #if count == conv:
+                print('--->>>> ', m)
                 return x
-            count = count + 1
-    print('---forward ended..._--')
-    exit()
-    return x
+        #    count = count + 1
+    #return x
+    '''
+
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
