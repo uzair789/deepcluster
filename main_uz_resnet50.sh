@@ -13,7 +13,7 @@ LR=0.05
 WD=-5
 K=1000
 WORKERS=12
-EXP="/home/biometrics/deepcluster/exp_uz_resnet_K1000"
+EXP="/home/biometrics/deepcluster/exp_uz_resnet_K1000_seqFix"
 # PYTHON="/private/home/${USER}/test/conda/bin/python"
 
 mkdir -p ${EXP}

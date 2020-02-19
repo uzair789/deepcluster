@@ -9,7 +9,7 @@
 DATA="/home/biometrics/deepcluster-git/deepcluster/Data/imagenet2012/"
 MODELROOT="/home/biometrics/deepcluster-git/deepcluster/results/exp_uz_resnet_K1000"
 MODEL="${MODELROOT}/checkpoint.pth.tar"
-EXP="${MODELROOT}/linear_classif"
+EXP="${MODELROOT}/linear_classif_debug"
 
 
 mkdir -p ${EXP}

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .utils import load_state_dict_from_url
+from utils import load_state_dict_from_url
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -119,32 +119,13 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, sobel, block, layers, num_classes=1000, zero_init_residual=False,
+    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
-
-        if sobel:
-            grayscale = nn.Conv2d(3, 1, kernel_size=1, stride=1, padding=0)
-            grayscale.weight.data.fill_(1.0 / 3.0)
-            grayscale.bias.data.zero_()
-            sobel_filter = nn.Conv2d(1, 2, kernel_size=3, stride=1, padding=1)
-            sobel_filter.weight.data[0, 0].copy_(
-                torch.FloatTensor([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
-            )
-            sobel_filter.weight.data[1, 0].copy_(
-                torch.FloatTensor([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
-            )
-            sobel_filter.bias.data.zero_()
-            self.sobel = nn.Sequential(grayscale, sobel_filter)
-            for p in self.sobel.parameters():
-                p.requires_grad = False
-        else:
-            self.sobel = None
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
-
 
         self.inplanes = 64
         self.dilation = 1
@@ -157,13 +138,11 @@ class ResNet(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-
-        input_channel = 2 + int(not sobel)
-        #self.conv1 = nn.Conv2d(input_channel, self.inplanes, kernel_size=7, stride=2, padding=3,
-        #                       bias=False)
-        #self.bn1 = norm_layer(self.inplanes)
-        #self.relu = nn.ReLU(inplace=True)
-        #self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = norm_layer(self.inplanes)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
                                        dilate=replace_stride_with_dilation[0])
@@ -172,49 +151,8 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.top_layer = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-        if sobel:
-            '''
-            print('---->><<< in features', sobel)
-            self.features = nn.Sequential(
-                         self.conv1, 
-                         self.bn1,
-                         self.relu,
-                         self.maxpool,
-                         *self.layer1,
-                         *self.layer2,
-                         *self.layer3,
-                         *self.layer4,
-                         
-                        )
-            '''
-            print('---->><<< in features', sobel)
-            self.features = nn.Sequential(
-                         nn.Conv2d(input_channel, 64, kernel_size=7, stride=2, padding=3,bias=False),
-                         norm_layer(64),
-                         nn.ReLU(inplace=True),
-                         nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-                         *self.layer1,
-                         *self.layer2,
-                         *self.layer3,
-                         *self.layer4,
-                         
-                        )
-            #'''
-        else:
-            self.features = nn.Sequential(
-                         self.conv1, 
-                         self.bn1,
-                         self.relu,
-                         self.maxpool,
-                         *self.layer1,
-                         *self.layer2,
-                         *self.layer3,
-                         *self.layer4,
-                         
-                        )
-            
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -231,7 +169,6 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn3.weight, 0)
                 elif isinstance(m, BasicBlock):
                     nn.init.constant_(m.bn2.weight, 0)
-
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
         norm_layer = self._norm_layer
@@ -255,19 +192,15 @@ class ResNet(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer))
 
-        #return nn.Sequential(*layers)
-        return layers
+        return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
-        '''
-        if self.sobel:
-            x = self.sobel(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
-	
+
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
@@ -275,24 +208,16 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        '''
-        if self.sobel:
-            x = self.sobel(x)
-        x = self.features(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        if self.top_layer:
-            #print('feature dim',a.shape)
-            #print('avgpool dim',b.shape)
-            x = self.top_layer(x)
+        x = self.fc(x)
+
         return x
 
     def forward(self, x):
         return self._forward_impl(x)
 
 
-def _resnet(sobel, arch, block, layers, pretrained, progress, **kwargs):
-    model = ResNet(sobel, block, layers, **kwargs)
+def _resnet(arch, block, layers, pretrained, progress, **kwargs):
+    model = ResNet(block, layers, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
@@ -324,17 +249,15 @@ def resnet34(pretrained=False, progress=True, **kwargs):
                    **kwargs)
 
 
-def resnet50(sobel, pretrained=False, progress=True, **kwargs):
+def resnet50(pretrained=False, progress=True, **kwargs):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
     Args:
-        sobel (bool): To initiate the sobel filter
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    print('-----..>>>>>> sobel flag', sobel)
-    return _resnet(sobel, 'resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
+    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], pretrained, progress,
                    **kwargs)
 
 

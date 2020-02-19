@@ -20,13 +20,16 @@ def load_model_resnet(path):
         print("=> loading checkpoint '{}'".format(path))
         checkpoint = torch.load(path)
 
+        '''
         print(checkpoint)
         print('-----')
         print('arch --->><<<', checkpoint['arch'])
    
         print('keysss')
         print(checkpoint['state_dict'].keys())
- 
+        '''
+
+        old_keys = checkpoint['state_dict'].keys()
 
         # size of the top layer
         N = checkpoint['state_dict']['top_layer.bias'].size()
@@ -35,6 +38,18 @@ def load_model_resnet(path):
         sob = 'sobel.0.weight' in checkpoint['state_dict'].keys()
         #model = models.__dict__[checkpoint['arch']](sobel=sob, out=int(N[0]))
         model = models.__dict__[checkpoint['arch']](sobel=sob)
+
+
+        print('models state dict ----->>><<<<')
+        print(model.state_dict().keys())
+        f1 = open('resnet_arch.txt', 'w') 
+        for name, param in model.state_dict().items():
+            #if 'weight' in name or 'bias' in name:
+            l = name+ '\t'+str(param.size())
+            f1.write(l+'\n')
+
+        f1.close()
+        #exit()
 
         # deal with a dataparallel table
         def rename_key(key):
@@ -46,6 +61,15 @@ def load_model_resnet(path):
                                     for key, val
                                     in checkpoint['state_dict'].items()}
 
+        new_keys = checkpoint['state_dict'].keys()
+
+        print('old keys ---->>>>')
+        print(old_keys)
+        print('new keys ---->>>>')
+        print(new_keys)
+
+
+       
         # load weights
         model.load_state_dict(checkpoint['state_dict'])
         print("Loaded")

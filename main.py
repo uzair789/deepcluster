@@ -76,17 +76,20 @@ def main():
     if args.verbose:
         print('Architecture: {}'.format(args.arch))
    
-    print(models.__dict__, '---->>')
  
     model = models.__dict__[args.arch](sobel=args.sobel)
 
-    print(model)
     fd = int(model.top_layer.weight.size()[1])
     model.top_layer = None
     model.features = torch.nn.DataParallel(model.features)
-    model.cuda()
 
-    summary(model, (3,224,224 ), 256)
+
+    for name, params in model.state_dict().items():
+        print(name, '\t', params.size())
+
+
+    model.cuda()
+    summary(model, (3,224,224 ))
 
     cudnn.benchmark = True
 

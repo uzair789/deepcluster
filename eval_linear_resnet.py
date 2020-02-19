@@ -19,6 +19,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import models
 
+from torchsummary import summary
+
 from util import AverageMeter, learning_rate_decay, load_model_resnet, Logger, load_l2_model
 
 parser = argparse.ArgumentParser(description="""Train linear classifier on top
@@ -61,7 +63,11 @@ def main():
         model = load_l2_model(args.model)
     else:
         model = load_model_resnet(args.model)
+
+
+
     model.cuda()
+    summary(model, (3,224,224))
     cudnn.benchmark = True
 
     # freeze the features layers
