@@ -26,6 +26,7 @@ import clustering
 import models
 from util import AverageMeter, Logger, UnifLabelSampler
 
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser(description='PyTorch Implementation of DeepCluster')
 
@@ -111,10 +112,23 @@ def main():
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             # remove top_layer parameters from checkpoint
+            '''
+            checkpoint_copy = checkpoint.copy()
+              
+
             for key in checkpoint['state_dict']:
                 if 'top_layer' in key:
-                    del checkpoint['state_dict'][key]
-            model.load_state_dict(checkpoint['state_dict'])
+                    del checkpoint_copy['state_dict'][key]
+            '''
+            checkpoint_copy = OrderedDict()
+            for key, val in checkpoint['state_dict'].items():
+                
+                if 'top_layer' in key:
+                    continue
+                else:
+                    checkpoint_copy[key] = val
+
+            model.load_state_dict(checkpoint_copy)
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
@@ -252,10 +266,11 @@ def train(loader, model, crit, opt, epoch):
         # save checkpoint
         n = len(loader) * epoch + i
         if n % args.checkpoints == 0:
+        #if epoch % args.checkpoints == 0:
             path = os.path.join(
                 args.exp,
                 'checkpoints',
-                'checkpoint_' + str(n / args.checkpoints) + '.pth.tar',
+                'checkpoint_' + str(epoch)+'_'+str(n/ args.checkpoints) + '.pth.tar',
             )
             if args.verbose:
                 print('Save checkpoint at: {0}'.format(path))

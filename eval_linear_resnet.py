@@ -203,9 +203,8 @@ class RegLog(nn.Module):
 
 
 def forward(x, model, conv):
-    #if hasattr(model, 'sobel') and model.sobel is not None:
-    #    x = model.sobel(x)
-    count = 1
+    if hasattr(model, 'sobel') and model.sobel is not None:
+        x = model.sobel(x)
 
     
 
