@@ -19,6 +19,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import models
 
+from models.resnet50 import Bottleneck
+
 from torchsummary import summary
 
 from util import AverageMeter, learning_rate_decay, load_model_resnet, Logger, load_l2_model
@@ -193,32 +195,70 @@ class RegLog(nn.Module):
         if l2:
             self.linear = models.distLinear(s, num_labels)
         else:
-            self.linear = nn.Linear(4*512, num_labels)
+            self.av_pool = nn.AvgPool2d(2, stride=2, padding=0)
+
+            # for layer 3
+            #self.linear = nn.Linear(50176, num_labels)
+
+            # for layer 2
+            self.linear = nn.Linear(100352, num_labels)
             #self.linear = models.distLinear(s, num_labels)
 
     def forward(self, x):
-        #x = self.av_pool(x)
+        #print('befre avg pool', x.shape)
+        x = self.av_pool(x)
+        #print('after avg pool', x.shape)
         x = x.view(x.size(0), x.size(1) * x.size(2) * x.size(3))
+        # results in an output of 256, 50176
+        #print('in reg', x.shape)
         return self.linear(x)
 
 
 def forward(x, model, conv):
+    stop = 16 # for layer 3
+    stop = 10 # for layer 2
     if hasattr(model, 'sobel') and model.sobel is not None:
         x = model.sobel(x)
 
-    
+    for  i, m in enumerate(model.features.children()):
+        if i<= stop:
+            #print(i, 'children-->', m)
+            x = m(x)
+            if i == stop:
+                for j, n in enumerate(m.children()):
+                    #print(j, 'inside', n)
+                    x = n(x)
+                    if j in [1, 3]:
+                        x = nn.ReLU(inplace=True)(x)
+                    if j == 4:
 
-    x = model.features(x)
-    x = model.avgpool(x)  
-    return x
+                        return x
+
+    #print(i, j, x.shape)
+
+    #exit()
+
+    '''
+    #x = model.features(x)
+    #x = model.avgpool(x)
+    skip_list = [14]
+    for i, m in enumerate(model.features.modules()):
+
+        if not isinstance(m, nn.Sequential) and not isinstance(m, Bottleneck) and i not in skip_list:
+            print(i, '--feat-->', m)
+            if i <= 115:
+                x = m(x)
+    exit()
     '''
 
- 
+    '''
+
+
     for m in model.features.modules():
         print('feat-->', m)
 
     print('####---####')
- 
+
 
     for m in model.features.modules():
         #print('--', m)
@@ -231,8 +271,9 @@ def forward(x, model, conv):
                 print('--->>>> ', m)
                 return x
         #    count = count + 1
-    #return x
     '''
+    #return x
+
 
 
 def accuracy(output, target, topk=(1,)):

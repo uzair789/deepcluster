@@ -40,8 +40,8 @@ def load_model_resnet(path):
         model = models.__dict__[checkpoint['arch']](sobel=sob)
 
 
-        print('models state dict ----->>><<<<')
-        print(model.state_dict().keys())
+        #print('models state dict ----->>><<<<')
+        #print(model.state_dict().keys())
         f1 = open('resnet_arch.txt', 'w') 
         for name, param in model.state_dict().items():
             #if 'weight' in name or 'bias' in name:
@@ -63,10 +63,10 @@ def load_model_resnet(path):
 
         new_keys = checkpoint['state_dict'].keys()
 
-        print('old keys ---->>>>')
-        print(old_keys)
-        print('new keys ---->>>>')
-        print(new_keys)
+        #print('old keys ---->>>>')
+        #print(old_keys)
+        #print('new keys ---->>>>')
+        #print(new_keys)
 
 
        
