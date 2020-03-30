@@ -202,12 +202,15 @@ class RegLog(nn.Module):
             #self.av_pool = nn.AvgPool2d(2, stride=2, padding=0)
 
             #global avg pooling as like in the original resnet code
-            self.av_pool = nn.AdaptiveAvgPool2d((1, 1))
+            #self.av_pool = nn.AdaptiveAvgPool2d((1, 1))
 
             # for layer 3
             # self.linear = nn.Linear(50176, num_labels)
             # with global avg pooling
-            self.linear = nn.Linear(1024, num_labels)
+            #self.linear = nn.Linear(1024, num_labels)
+
+            self.av_pool = nn.AvgPool2d(3, stride=3, padding=0)
+            self.linear = nn.Linear(16384, num_labels)
 
             # for layer 2
             #self.linear = nn.Linear(100352, num_labels)
