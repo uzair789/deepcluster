@@ -11,7 +11,7 @@ MODELROOT="/home/biometrics/deepcluster-git/deepcluster/exp_uz_resnet_K1000_seqF
 MODEL="${MODELROOT}/checkpoint.pth.tar"
 #MODEL="${MODELROOT}/checkpoints/checkpoint_99_20.0.pth.tar"
 #EXP="${MODELROOT}/linear_classif_layer3_50176feat"
-EXP="${MODELROOT}/linear_classif_layer2_feat"
+EXP="${MODELROOT}/linear_classif_layer3Avgpool"
 
 
 mkdir -p ${EXP}

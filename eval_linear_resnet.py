@@ -195,14 +195,22 @@ class RegLog(nn.Module):
         if l2:
             self.linear = models.distLinear(s, num_labels)
         else:
-            self.av_pool = nn.AvgPool2d(2, stride=2, padding=0)
+            # for l2 softmax
+            #self.linear = models.distLinear(s, num_labels)
+
+            # in alexnet
+            #self.av_pool = nn.AvgPool2d(2, stride=2, padding=0)
+
+            #global avg pooling as like in the original resnet code
+            self.av_pool = nn.AdaptiveAvgPool2d((1, 1))
 
             # for layer 3
-            #self.linear = nn.Linear(50176, num_labels)
+            # self.linear = nn.Linear(50176, num_labels)
+            # with global avg pooling
+            self.linear = nn.Linear(1024, num_labels)
 
             # for layer 2
-            self.linear = nn.Linear(100352, num_labels)
-            #self.linear = models.distLinear(s, num_labels)
+            #self.linear = nn.Linear(100352, num_labels)
 
     def forward(self, x):
         #print('befre avg pool', x.shape)
@@ -216,7 +224,7 @@ class RegLog(nn.Module):
 
 def forward(x, model, conv):
     stop = 16 # for layer 3
-    stop = 10 # for layer 2
+    #stop = 10 # for layer 2
     if hasattr(model, 'sobel') and model.sobel is not None:
         x = model.sobel(x)
 
