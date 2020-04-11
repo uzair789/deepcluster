@@ -209,19 +209,24 @@ class RegLog(nn.Module):
             # with global avg pooling
             #self.linear = nn.Linear(1024, num_labels)
 
-            self.av_pool = nn.AvgPool2d(3, stride=3, padding=0)
-            self.linear = nn.Linear(16384, num_labels)
-
             # for layer 2
             #self.linear = nn.Linear(100352, num_labels)
+
+            # feat dim 16384 for layer 3
+            #self.av_pool = nn.AvgPool2d(3, stride=3, padding=0)
+            #self.linear = nn.Linear(16384, num_labels)
+
+            self.av_pool = nn.AvgPool2d(4, stride=4, padding=0)
+            self.linear = nn.Linear(9216, num_labels)
 
     def forward(self, x):
         #print('befre avg pool', x.shape)
         x = self.av_pool(x)
         #print('after avg pool', x.shape)
         x = x.view(x.size(0), x.size(1) * x.size(2) * x.size(3))
-        # results in an output of 256, 50176
+        # results in an output of 256, 50176 for layer3
         #print('in reg', x.shape)
+        #exit()
         return self.linear(x)
 
 

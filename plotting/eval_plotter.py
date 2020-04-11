@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 root = '/home/biometrics/deepcluster-git/deepcluster/'
 
 
-folders = [root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer3_50176feat/log_conv_layer3_50176feat.txt""",
-           root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer2_feat/log_conv_layer2_feat.txt""",
+folders = [root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer3_50176feat/log_conv_layer3reshape50176feat.txt""",
+           root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer2_feat/log_conv_layer2reshape100352feat.txt""",
+           root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer3Avgpool/log_conv_layer3GlobalAvgPool1024.txt""",
+           root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer3EngPool/log_conv_layer3K3S3AvgPool16384.txt""",
+           root+"""exp_uz_resnet_K1000_seqFix/linear_classif_layer3EngPoolstride4/log_conv_layer3K4S4AvgPool9216.txt""",
+
            root+"""results/exp/linear_classif/log_conv5.txt"""]
 
 

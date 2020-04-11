@@ -11,11 +11,11 @@ MODELROOT="/home/biometrics/deepcluster-git/deepcluster/exp_uz_resnet_K1000_seqF
 MODEL="${MODELROOT}/checkpoint.pth.tar"
 #MODEL="${MODELROOT}/checkpoints/checkpoint_99_20.0.pth.tar"
 #EXP="${MODELROOT}/linear_classif_layer3_50176feat"
-EXP="${MODELROOT}/linear_classif_layer3EngPool"
+EXP="${MODELROOT}/linear_classif_layer3EngPoolstride4"
 
 
 mkdir -p ${EXP}
 
-CUDA_VISIBLE_DEVICES="6" python eval_linear_resnet.py --model ${MODEL} --data ${DATA} --conv 100 --lr 0.01 \
-  --wd -7 --verbose --exp ${EXP}  --workers 12 2>&1 | tee ${EXP}/log_conv_layer3_feat.txt
+CUDA_VISIBLE_DEVICES="7" python eval_linear_resnet.py --model ${MODEL} --data ${DATA} --conv 100 --lr 0.01 \
+  --wd -7 --verbose --exp ${EXP}  --workers 12 2>&1 | tee ${EXP}/log_conv_layer3stride4.txt
 
